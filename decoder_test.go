@@ -1,4 +1,4 @@
-package html
+package scraper
 
 import (
 	"os"
@@ -27,13 +27,13 @@ func TestDecoder(t *testing.T) {
 	tests := []struct {
 		name      string
 		inputFile string
-		options   []DecoderOption
+		options   []Option
 		want      interface{}
 		got       interface{}
 		wantErr   error
 	}{
 		{"A", "testdata/a.html", nil, &a{"  Hello World  "}, &a{}, nil},
-		{"A (trim)", "testdata/a.html", []DecoderOption{TrimSpace()}, &a{"Hello World"}, &a{}, nil},
+		{"A (trim)", "testdata/a.html", []Option{TrimSpace()}, &a{"Hello World"}, &a{}, nil},
 		{"B", "testdata/b.html", nil, &b{[]a{{"one"}, {"two"}, {"three"}}}, &b{}, nil},
 		{"BB", "testdata/b.html", nil, &bb{[]*a{{"one"}, {"two"}, {"three"}}}, &bb{}, nil},
 		{"C", "testdata/c.html", nil, &c{&b{[]a{{"one"}, {"two"}, {"three"}}}}, &c{}, nil},

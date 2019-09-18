@@ -1,8 +1,11 @@
-package html
+package scraper
 
 import (
+	"bytes"
 	"encoding"
 	"errors"
+	"reflect"
+	"strings"
 
 	"golang.org/x/net/html"
 )
@@ -23,20 +26,32 @@ type HtmlUnmarshaler interface {
 	UnmarshalHtml(*html.Node) error
 }
 
-/*func Unmarshal(node *html.Node, v interface{}) error {
-	un := &Unmarshaler{
-		TrimSpace: true,
-		Node:      node,
-	}
-	return un.Unmarshal(v)
+func Unmarshal(text []byte, v interface{}) error {
+	return NewDecoder(bytes.NewReader(text)).Decode(v)
 }
 
 type Unmarshaler struct {
-	TrimSpace bool
-	Node      *html.Node
+	root      *html.Node
+	trimSpace bool
+	err       error
 }
 
-func (un *Unmarshaler) Unmarshal(v interface{}) (err error) {
+func NewUnmarshaler(root *html.Node, options ...Option) (u *Unmarshaler) {
+	u = &Unmarshaler{root: root}
+	for _, option := range options {
+		u.err = option(u)
+		if u.err != nil {
+			break
+		}
+	}
+	return u
+}
+
+func (u *Unmarshaler) Unmarshal(v interface{}) error {
+	if u.err != nil {
+		return u.err
+	}
+
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
 		return &InvalidUnmarshalError{reflect.TypeOf(v)}
@@ -47,77 +62,80 @@ func (un *Unmarshaler) Unmarshal(v interface{}) (err error) {
 		return &InvalidUnmarshalError{reflect.TypeOf(v)}
 	}
 
-	return un.unmarshal(un.Html, rv)
+	return u.unmarshal(&selection{u.root}, rv)
 }
 
-func (un Unmarshaler) unmarshal(selection Html, rv reflect.Value) (err error) {
+func (u *Unmarshaler) unmarshal(n *selection, rv reflect.Value) (err error) {
 	rt := rv.Type()
 	for i := 0; err == nil && i < rt.NumField(); i++ {
 		ft := rt.Field(i)
 		var t *tag
 		if t, err = parseTag(ft); err == nil {
-			if rv.Field(i).Kind() == reflect.Slice {
-				err = selection.each(ti.selector, func(node Html) error {
-					value := reflect.New(ft.Type.Elem())
-					err := un.set(ti, node, value)
-					if err == nil {
-						if ft.Type.Elem().Kind() == reflect.Ptr {
-							rv.Field(i).Set(reflect.Append(rv.Field(i), value))
-						} else {
-							rv.Field(i).Set(reflect.Append(rv.Field(i), reflect.Indirect(value)))
-						}
-					}
-					return err
-				})
-			} else {
-				var node Html
-				node, err = selection.find(ti.selector)
-				if err == nil {
-					err = un.set(ti, node, rv.Field(i))
-				}
-			}
+			err = u.walk(n, &field{rv.Field(i), t})
 		} else if err == ErrNoTag {
 			err = nil
 		}
 	}
-	return err
+	return
 }
 
-func (un Unmarshaler) unmarshalField(ti *tagInfo, selection Html, field reflect.Value) (err error) {
-	if field.Kind() != reflect.Slice && field.Kind() != reflect.Ptr {
-		field = field.Addr()
-	}
-	if field.Type().NumMethod() > 0 && field.CanInterface() {
-		switch u := field.Interface().(type) {
-		case HtmlUnmarshaler:
-			err = u.UnmarshalHtml(selection)
-		case TextUnmarshaler:
-			err = u.UnmarshalText([]byte(ti.value(selection, un.TrimSpace)))
-		case BinaryUnmarshaler:
-			err = u.UnmarshalBinary([]byte(ti.value(selection, un.TrimSpace)))
+func (u *Unmarshaler) walk(n *selection, f *field) (err error) {
+	if n.Type == html.ElementNode {
+		if f.tag.matches(n) {
+			if f.Kind() == reflect.Slice {
+				var value reflect.Value
+				if f.Type().Elem().Kind() == reflect.Ptr {
+					value = reflect.New(f.Type().Elem().Elem())
+				} else {
+					value = reflect.New(f.Type().Elem())
+				}
+				err = u.set(&field{value, f.tag}, n)
+				if err == nil {
+					if f.Type().Elem().Kind() == reflect.Ptr {
+						f.Set(reflect.Append(f.Value, value))
+					} else {
+						f.Set(reflect.Append(f.Value, reflect.Indirect(value)))
+					}
+				}
+			} else {
+				err = u.set(f, n)
+			}
+			// short circuit
+			return
 		}
-	} else {
-		err = ErrNoUnmarshaler
 	}
-	return err
+
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		err = u.walk(&selection{c}, f)
+		if err != nil {
+			break
+		}
+	}
+	return
 }
 
-func (un Unmarshaler) set(ti *tagInfo, selection Html, field reflect.Value) (err error) {
-	if err := un.unmarshalField(ti, selection, field); err == nil || (err != ErrNoUnmarshaler) {
-		return err
+func (u *Unmarshaler) set(f *field, n *selection) (err error) {
+	if err = f.unmarshal(n); err == nil || (err != ErrNoUnmarshaler) {
+		return
 	}
+	// reset error in case it was ErrNoUnmarshaler (see above conditional)
+	err = nil
 
-	if field.Kind() == reflect.Ptr {
-		if field.IsNil() {
-			field.Set(reflect.New(field.Type()))
+	if f.Kind() == reflect.Ptr {
+		if f.IsNil() {
+			f.Set(reflect.New(f.Type().Elem()))
 		}
-		field = reflect.Indirect(field)
+		f.Value = reflect.Indirect(f.Value)
 	}
 
-	if field.Kind() == reflect.Struct {
-		err = un.unmarshal(selection, field)
+	if f.Kind() == reflect.Struct {
+		err = u.unmarshal(n, f.Value)
 	} else {
-		err = ti.set(selection, un.TrimSpace, field)
+		value := n.value(f.tag)
+		if u.trimSpace {
+			value = strings.TrimSpace(value)
+		}
+		err = f.set(value)
 	}
-	return err
-}*/
+	return
+}
