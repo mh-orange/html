@@ -1,3 +1,17 @@
+// Copyright 2019 Andrew Bates
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package scraper
 
 import (
@@ -10,8 +24,29 @@ import (
 )
 
 var (
+	// ErrUnknownTagType indicates that the scraperType tag is an unknown value
 	ErrUnknownTagType = errors.New("Unknown tag type ")
-	ErrNoTag          = errors.New("No HTML Tag found")
+
+	errNoTag = errors.New("No HTML Tag found")
+)
+
+// Scraper uses struct field tags to determine how to unmarshal an HTML element tree into
+// a type.  This is similar to how encoding/json uses tags to match json field names to struct
+// field names.  There are two tags that scraper uses in its processing, `scraper` and `scrapeType`.
+// Example:
+//   type MyType struct {
+//     URL string `scraper:"a.myurl" scrapeType:"attr:href"` // parses the href attribute from the matching a
+//   }
+const (
+	// SelectorTagName is used to reflect the appropriate struct field tag.  The SelectorTagName
+	// is the tag used to specify a CSS selector to match for the field
+	SelectorTagName = "scraper"
+
+	// TypeTagName (scrapeType) is the tag used to specify what kind of value lookup should be performed.  The
+	// default is `text` and simply gathers the text nodes from the matching html subtree.  The
+	// alternative type is `attr` which will assign value based on a matching attribute.  The
+	// attribute name (for the matched node) is specified following a colon
+	TypeTagName = "scrapeType"
 )
 
 type tagType int
@@ -43,10 +78,10 @@ type tag struct {
 
 func parseTag(field reflect.StructField) (t *tag, err error) {
 	t = &tag{}
-	if tag, found := field.Tag.Lookup("html"); found {
-		err = t.parse(tag, field.Tag.Get("htmlType"))
+	if tag, found := field.Tag.Lookup(SelectorTagName); found {
+		err = t.parse(tag, field.Tag.Get(TypeTagName))
 	} else {
-		err = ErrNoTag
+		err = errNoTag
 	}
 	return t, err
 }

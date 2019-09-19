@@ -1,3 +1,17 @@
+// Copyright 2019 Andrew Bates
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package scraper
 
 import (
@@ -13,11 +27,11 @@ func TestTagParse(t *testing.T) {
 		wantDet string
 		wantErr error
 	}{
-		{"A OK", reflect.StructField{Tag: `html:""`}, text, "", nil},
-		{"A OK with detail", reflect.StructField{Tag: `html:"" htmlType:":foobar"`}, text, "foobar", nil},
-		{"attribute instead of text", reflect.StructField{Tag: `html:"" htmlType:"attr"`}, attr, "", nil},
-		{"unknown type", reflect.StructField{Tag: `html:"" htmlType:"foo"`}, text, "", ErrUnknownTagType},
-		{"no tag", reflect.StructField{}, text, "", ErrNoTag},
+		{"A OK", reflect.StructField{Tag: `scraper:""`}, text, "", nil},
+		{"A OK with detail", reflect.StructField{Tag: `scraper:"" scrapeType:":foobar"`}, text, "foobar", nil},
+		{"attribute instead of text", reflect.StructField{Tag: `scraper:"" scrapeType:"attr"`}, attr, "", nil},
+		{"unknown type", reflect.StructField{Tag: `scraper:"" scrapeType:"foo"`}, text, "", ErrUnknownTagType},
+		{"no tag", reflect.StructField{}, text, "", errNoTag},
 	}
 
 	for _, test := range tests {

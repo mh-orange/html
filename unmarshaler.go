@@ -1,3 +1,17 @@
+// Copyright 2019 Andrew Bates
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package scraper
 
 import (
@@ -27,20 +41,34 @@ func TrimSpace() Option {
 	}
 }
 
+// HTMLUnmarshaler is the interface implemented by types that can unmarshal parsed
+// html directly.  The input is a parsed element tree starting at the element that
+// matched the CSS selector specified in the scraper tag
 type HTMLUnmarshaler interface {
 	UnmarshalHTML(*html.Node) error
 }
 
+// Unmarshal will parse the input text and unmarshal it into v
 func Unmarshal(text []byte, v interface{}) error {
 	return NewDecoder(bytes.NewReader(text)).Decode(v)
 }
 
+// Unmarshaler processes an HTML tree and unmarshals/parses it
+// into a receiver.  The unmarshaler looks for struct field tags
+// matching `scraper` and `scrapeType`
 type Unmarshaler struct {
 	root      *html.Node
 	trimSpace bool
 	err       error
 }
 
+// NewUnmarshaler creates a scraper Unmarshaler with its root set to the
+// input *html.Node and setting any options given.  If any of the options
+// generate an error, then that error is passed through upon calling
+// Unmarshal.  This allows for chaining the NewUnmarshaler function with
+// Unmarshal:
+//   err := NewUnmarshaler(root).Unmarshal(v)
+//
 func NewUnmarshaler(root *html.Node, options ...Option) (u *Unmarshaler) {
 	u = &Unmarshaler{root: root}
 	for _, option := range options {
@@ -52,6 +80,7 @@ func NewUnmarshaler(root *html.Node, options ...Option) (u *Unmarshaler) {
 	return u
 }
 
+// Unmarshal the document into v
 func (u *Unmarshaler) Unmarshal(v interface{}) (err error) {
 	if u.err != nil {
 		return u.err
@@ -107,7 +136,7 @@ func (u *Unmarshaler) unmarshalStruct(f *field, n *selection) (err error) {
 		var t *tag
 		if t, err = parseTag(ft); err == nil {
 			err = u.walk(&field{f.Value.Field(i), t}, n)
-		} else if err == ErrNoTag {
+		} else if err == errNoTag {
 			err = nil
 		}
 	}
