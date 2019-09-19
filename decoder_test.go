@@ -41,6 +41,10 @@ type c struct {
 
 type d int
 
+type e struct {
+	Names []string `scraper:"ul li"`
+}
+
 func TestDecoder(t *testing.T) {
 	errFoo := errors.New("Foo")
 
@@ -77,6 +81,7 @@ func TestDecoder(t *testing.T) {
 		{"quick fail", "testdata/a.html", []Option{func(*Unmarshaler) error { return errFoo }}, &a{}, &a{}, errFoo},
 		{"InvalidUnmarshalError 1", "testdata/a.html", nil, &a{}, nil, &InvalidUnmarshalError{reflect.TypeOf(nil), reflect.Ptr}},
 		{"InvalidUnmarshalError 2", "testdata/a.html", nil, new(d), new(d), &InvalidUnmarshalError{reflect.TypeOf(d(0)), reflect.Struct}},
+		{"E", "testdata/e.html", nil, &e{[]string{"one", "two", "three"}}, &e{}, nil},
 	}
 
 	for _, test := range tests {
