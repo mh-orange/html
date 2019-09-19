@@ -14,12 +14,17 @@ var (
 	errNoUnmarshaler = errors.New("Type does not implement a known umarshaler")
 )
 
-type BinaryUnmarshaler interface {
-	encoding.BinaryUnmarshaler
-}
+// Option updates an Unmarshaler with various capabilities
+type Option func(*Unmarshaler) error
 
-type TextUnmarshaler interface {
-	encoding.TextUnmarshaler
+// TrimSpace tells the unmarshaller to trim values using strings.TrimSpace
+// when a field is set, the value (either text content or attribute value)
+// will be trimmed prior to type conversion and assignment
+func TrimSpace() Option {
+	return func(u *Unmarshaler) error {
+		u.trimSpace = true
+		return nil
+	}
 }
 
 type HTMLUnmarshaler interface {
@@ -78,9 +83,9 @@ func (u *Unmarshaler) tryUnmarshaler(f *field, n *selection) error {
 	err := errNoUnmarshaler
 	if value.Type().NumMethod() > 0 && value.CanInterface() {
 		switch i := value.Interface().(type) {
-		case TextUnmarshaler:
+		case encoding.TextUnmarshaler:
 			err = i.UnmarshalText([]byte(u.value(f, n)))
-		case BinaryUnmarshaler:
+		case encoding.BinaryUnmarshaler:
 			err = i.UnmarshalBinary([]byte(u.value(f, n)))
 		case HTMLUnmarshaler:
 			err = i.UnmarshalHTML(n.Node)
