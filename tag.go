@@ -102,29 +102,3 @@ func (f *field) set(value string) error {
 	}
 	return nil
 }
-
-func (f *field) unmarshal(n *selection) (err error) {
-	value := f.Value
-
-	if value.Kind() != reflect.Slice && value.Kind() != reflect.Ptr {
-		if value.CanAddr() {
-			value = value.Addr()
-		} else {
-			return ErrNoUnmarshaler
-		}
-	}
-
-	if value.Type().NumMethod() > 0 && value.CanInterface() {
-		switch u := value.Interface().(type) {
-		case HtmlUnmarshaler:
-			err = u.UnmarshalHtml(n.Node)
-		case TextUnmarshaler:
-			err = u.UnmarshalText([]byte(n.value(f.tag)))
-		case BinaryUnmarshaler:
-			err = u.UnmarshalBinary([]byte(n.value(f.tag)))
-		}
-	} else {
-		err = ErrNoUnmarshaler
-	}
-	return err
-}

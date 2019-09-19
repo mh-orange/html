@@ -11,7 +11,7 @@ import (
 func TestSelectionValue(t *testing.T) {
 	tests := []struct {
 		name      string
-		inputHtml string
+		inputHTML string
 		inputTag  *tag
 		want      string
 	}{
@@ -26,7 +26,7 @@ func TestSelectionValue(t *testing.T) {
 				DataAtom: atom.Div,
 				Data:     "div",
 			}
-			node, err := html.ParseFragment(strings.NewReader(test.inputHtml), ctx)
+			node, err := html.ParseFragment(strings.NewReader(test.inputHTML), ctx)
 			if err != nil {
 				t.Fatalf("Failed to parse html: %v", err)
 			}

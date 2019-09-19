@@ -3,8 +3,6 @@ package scraper
 import (
 	"reflect"
 	"testing"
-
-	"golang.org/x/net/html"
 )
 
 func TestTagParse(t *testing.T) {
@@ -36,6 +34,26 @@ func TestTagParse(t *testing.T) {
 				}
 			} else {
 				t.Errorf("Wanted error %v got %v", test.wantErr, gotErr)
+			}
+		})
+	}
+}
+
+func TestTagMatches(t *testing.T) {
+	tests := []struct {
+		name  string
+		input *selection
+		tag   *tag
+		want  bool
+	}{
+		{"nil selector", nil, &tag{}, true},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := test.tag.matches(test.input)
+			if test.want != got {
+				t.Errorf("Wanted %v match got %v", test.want, got)
 			}
 		})
 	}
@@ -82,69 +100,6 @@ func TestFieldSet(t *testing.T) {
 				if gotErr == nil {
 					if !reflect.DeepEqual(test.want.Interface(), got.Interface()) {
 						t.Errorf("Wanted value %v got %v", test.want.Interface(), got.Interface())
-					}
-				}
-			} else {
-				t.Errorf("Wanted error %v got %v", test.wantErr, gotErr)
-			}
-		})
-	}
-}
-
-type testMarshaler interface {
-	called() bool
-}
-
-type testHtmlUnmarshaler struct{ c bool }
-
-func (t testHtmlUnmarshaler) called() bool { return t.c }
-func (t *testHtmlUnmarshaler) UnmarshalHtml(*html.Node) error {
-	t.c = true
-	return nil
-}
-
-type testTextUnmarshaler struct{ c bool }
-
-func (t testTextUnmarshaler) called() bool { return t.c }
-func (t *testTextUnmarshaler) UnmarshalText([]byte) error {
-	t.c = true
-	return nil
-}
-
-type testBinaryUnmarshaler struct{ c bool }
-
-func (t testBinaryUnmarshaler) called() bool { return t.c }
-func (t *testBinaryUnmarshaler) UnmarshalBinary([]byte) error {
-	t.c = true
-	return nil
-}
-
-type testNoUnmarshaler struct{ c bool }
-
-func (t testNoUnmarshaler) called() bool { return t.c }
-
-func TestFieldUnmarshal(t *testing.T) {
-	tests := []struct {
-		name    string
-		input   testMarshaler
-		want    bool
-		wantErr error
-	}{
-		{"html", &testHtmlUnmarshaler{}, true, nil},
-		{"text", &testTextUnmarshaler{}, true, nil},
-		{"binary", &testBinaryUnmarshaler{}, true, nil},
-		{"error", &testNoUnmarshaler{}, false, ErrNoUnmarshaler},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			f := &field{reflect.ValueOf(test.input), &tag{}}
-			gotErr := f.unmarshal(&selection{})
-			if test.wantErr == gotErr {
-				if gotErr == nil {
-					got := test.input.called()
-					if test.want != got {
-						t.Errorf("Wanted called to be %v got %v", test.want, got)
 					}
 				}
 			} else {

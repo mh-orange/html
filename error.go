@@ -1,23 +1,10 @@
 package scraper
 
 import (
-	"fmt"
 	"reflect"
 )
 
-type Error struct {
-	Msg   string
-	Cause string
-}
-
-func (err *Error) Error() string {
-	if err.Cause == "" {
-		return err.Msg
-	}
-	return fmt.Sprintf("%s: %s", err.Msg, err.Cause)
-}
-
-// An UnmarshalTypeError describes a JSON value that was
+// An UnmarshalTypeError describes a value that was
 // not appropriate for a value of a specific Go type.
 type UnmarshalTypeError struct {
 	Value string       // description of JSON value - "bool", "array", "number -5"
@@ -25,27 +12,24 @@ type UnmarshalTypeError struct {
 }
 
 func (e *UnmarshalTypeError) Error() string {
-	return "html: cannot unmarshal " + e.Value + " into Go value of type " + e.Type.String()
+	return "scraper: cannot unmarshal " + e.Value + " into Go value of type " + e.Type.String()
 }
 
 // An InvalidUnmarshalError describes an invalid argument passed to Unmarshal.
 // (The argument to Unmarshal must be a non-nil pointer.)
 type InvalidUnmarshalError struct {
 	Type reflect.Type
+	Want reflect.Kind
 }
 
 func (e *InvalidUnmarshalError) Error() string {
 	if e.Type == nil {
-		return "html: Unmarshal(nil)"
+		return "scraper: Unmarshal(nil)"
 	}
 
-	if e.Type.Kind() != reflect.Ptr {
-		return "html: Unmarshal(non-pointer " + e.Type.String() + ")"
+	if e.Type.Kind() != e.Want {
+		return "scraper: Unmarshal(non-" + e.Want.String() + " " + e.Type.Kind().String() + ")"
 	}
 
-	if e.Type.Elem().Kind() != reflect.Struct {
-		return "html: Unmarshal(non-struct " + e.Type.String() + ")"
-	}
-
-	return "html: Unmarshal(nil " + e.Type.String() + ")"
+	return "scraper: Unmarshal(nil " + e.Type.String() + ")"
 }
