@@ -6,3 +6,4 @@ Scraper is a Go package that parses HTML documents and unmarshals them into
 Go structs based on CSS selectors.  Selectors are specified using the "scraper"
 struct field tag.  For documentation and examples, please see the GoDoc
 
+
