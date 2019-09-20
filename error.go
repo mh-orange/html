@@ -21,7 +21,7 @@ import (
 // An UnmarshalTypeError describes a value that was
 // not appropriate for a value of a specific Go type.
 type UnmarshalTypeError struct {
-	Value string       // description of JSON value - "bool", "array", "number -5"
+	Value string       // description of value - "bool", "array", "number -5"
 	Type  reflect.Type // type of Go value it could not be assigned to
 }
 
