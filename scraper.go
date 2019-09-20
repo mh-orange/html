@@ -59,4 +59,25 @@
 //		}
 // Note that the attribute name is specified after the type (attr) and a separating colon.
 //
+// Types that implement encoding.BinaryUnmarshaler or encoding.TextUnmarshaler are honored:
+//		type Name struct {
+//			First string
+//			Last  string
+//		}
+//
+//		func (n *Name) UnmarshalText(text []byte) (err error) {
+//			tokens := strings.Split(string(text), ", ")
+//			if len(tokens) == 2 {
+//				n.Last = tokens[0]
+//				n.First = tokens[1]
+//			} else {
+//				err = errors.New("Wanted comma separated last and first names")
+//			}
+//			return err
+//		}
+//
+//		type Class struct {
+//			Students []Name `scraper:"ul li"`
+//		}
+//
 package scraper

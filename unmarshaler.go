@@ -41,6 +41,20 @@ func TrimSpace() Option {
 	}
 }
 
+// BinaryUnmarshaler is the interface implemented by an object that can unmarshal
+// the byte string (either text content or attribute) from an element matched
+// by a scraper seleector
+type BinaryUnmarshaler interface {
+	encoding.BinaryUnmarshaler
+}
+
+// TextUnmarshaler is the interface implemented by an object that can unmarshal
+// the byte string (either text content or attribute) from an element matched
+// by a scraper seleector
+type TextUnmarshaler interface {
+	encoding.TextUnmarshaler
+}
+
 // HTMLUnmarshaler is the interface implemented by types that can unmarshal parsed
 // html directly.  The input is a parsed element tree starting at the element that
 // matched the CSS selector specified in the scraper tag
@@ -112,9 +126,9 @@ func (u *Unmarshaler) tryUnmarshaler(f *field, n *selection) error {
 	err := errNoUnmarshaler
 	if value.Type().NumMethod() > 0 && value.CanInterface() {
 		switch i := value.Interface().(type) {
-		case encoding.TextUnmarshaler:
+		case TextUnmarshaler:
 			err = i.UnmarshalText([]byte(u.value(f, n)))
-		case encoding.BinaryUnmarshaler:
+		case BinaryUnmarshaler:
 			err = i.UnmarshalBinary([]byte(u.value(f, n)))
 		case HTMLUnmarshaler:
 			err = i.UnmarshalHTML(n.Node)
